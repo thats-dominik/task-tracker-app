@@ -1,21 +1,123 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+/* Grundlegende Stile für den Hintergrund und die Schrift */
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  font-family: 'Arial', sans-serif;
+  background-color: #242222; /* Hintergrundfarbe */
+  color: #ffffff; /* Textfarbe */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* Überschrift für die Hauptseite */
+h1 {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #36D1DD; /* Textfarbe für Überschriften */
+  margin: 1.5rem 0;
+  text-align: center;
+}
+
+/* Überschrift für die Task List */
+h2 {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #36D1DD;
+  margin-bottom: 1.5rem;
+}
+
+/* Button-Stil für "New Task" */
+button, a {
+  background-color: #36D1DD;
+  color: #242222;
+  font-weight: bold;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 0.5rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+button:hover, a:hover {
+  background-color: #2cb5c4;
+}
+
+/* Container für die Task-Karten */
+ul {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  justify-content: center;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+/* Stil für einzelne Karten */
+li {
+  background-color: #36D1DD; /* Hintergrundfarbe der Karten */
+  color: #242222;
+  border-radius: 0.5rem;
+  padding: 1rem;
+  width: 300px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Titel in der Task-Karte */
+li h3 {
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
+/* Beschreibung und zusätzliche Informationen */
+li p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+li p:nth-child(2) {
+  font-weight: lighter;
+}
+
+/* Container für Buttons */
+.card-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+/* Buttons innerhalb der Karten */
+.card-buttons a {
+  flex: 1;
+  padding: 0.4rem;
+  font-size: 0.9rem;
+  text-align: center;
+  border: 2px solid #242222;
+  border-radius: 0.5rem;
+}
+
+.card-buttons a:first-child {
+  background-color: #242222;
+  color: #36D1DD;
+}
+
+.card-buttons a:first-child:hover {
+  background-color: #3c3c3c;
+  color: #ffffff;
+}
+
+.card-buttons a:last-child {
+  background-color: #ff4c4c;
+  color: #ffffff;
+}
+
+.card-buttons a:last-child:hover {
+  background-color: #d12f2f;
 }

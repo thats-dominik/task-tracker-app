@@ -10,6 +10,7 @@ export default function EditTask({ params }) {
         description: '',
         priority: 'Medium',
         dueDate: '',
+        completed: false, // Neuer Status "completed"
     });
 
     const [id, setId] = useState(null); // ID lokal speichern
@@ -39,6 +40,19 @@ export default function EditTask({ params }) {
             .put('/api/tasks', { id, ...formData })
             .then(() => router.push('/')) // Nach Update zur Startseite weiterleiten
             .catch((error) => console.error('Error updating task:', error));
+    };
+
+    const handleComplete = async (taskId) => {
+        try {
+            await axios.patch('/api/tasks', { id: taskId, completed: true });
+            setTasks((prevTasks) =>
+                prevTasks.map((task) =>
+                    task._id === taskId ? { ...task, completed: true } : task
+                )
+            );
+        } catch (error) {
+            console.error('Error marking as completed:', error);
+        }
     };
 
     return (
@@ -93,6 +107,18 @@ export default function EditTask({ params }) {
                         }
                         className="w-full p-2 border rounded"
                         required
+                    />
+                </div>
+                {/* Neuer Abschnitt für "Completed"-Status */}
+                <div>
+                    <label className="block font-medium">Completed:</label>
+                    <input
+                        type="checkbox"
+                        checked={formData.completed} // Checkbox für den Status
+                        onChange={(e) =>
+                            setFormData({ ...formData, completed: e.target.checked })
+                        }
+                        className="w-6 h-6"
                     />
                 </div>
                 <button

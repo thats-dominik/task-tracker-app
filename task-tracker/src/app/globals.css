@@ -25,12 +25,11 @@ h2 {
   font-weight: bold;
   color: #36D1DD;
   margin-bottom: 1.5rem;
+  text-align: center;
 }
 
-/* Button-Stil für "New Task" */
+/* Links und allgemeine Buttons */
 button, a {
-  background-color: #36D1DD;
-  color: #242222;
   font-weight: bold;
   text-align: center;
   padding: 0.5rem 1rem;
@@ -39,10 +38,9 @@ button, a {
   text-decoration: none;
   cursor: pointer;
   transition: background-color 0.3s ease;
-}
-
-button:hover, a:hover {
-  background-color: #2cb5c4;
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
 /* Container für die Task-Karten */
@@ -82,42 +80,73 @@ li p {
   font-size: 0.9rem;
 }
 
-li p:nth-child(2) {
-  font-weight: lighter;
+.add-task-btn {
+  background-color: #36D1DD; 
+  color: #ffffff; 
+  font-weight: bold;
+  text-decoration: none;
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: background-color 0.3s ease, color 0.3s ease;
+  width: 7rem;
+  margin: 0 auto;
 }
 
-/* Container für Buttons */
+.add-task-btn:hover {
+  background-color: #2cb5c4; 
+  color: #242222; 
+}
+
 .card-buttons {
   display: flex;
   justify-content: space-between;
   gap: 0.5rem;
 }
 
-/* Buttons innerhalb der Karten */
 .card-buttons a {
-  flex: 1;
-  padding: 0.4rem;
-  font-size: 0.9rem;
-  text-align: center;
-  border: 2px solid #242222;
-  border-radius: 0.5rem;
-}
-
-.card-buttons a:first-child {
   background-color: #242222;
   color: #36D1DD;
 }
 
-.card-buttons a:first-child:hover {
+.card-buttons a:hover {
   background-color: #3c3c3c;
   color: #ffffff;
 }
 
-.card-buttons a:last-child {
+/* Delete-Button */
+.card-buttons .delete {
   background-color: #ff4c4c;
   color: #ffffff;
+  border: 2px solid #d12f2f;
 }
 
-.card-buttons a:last-child:hover {
+.card-buttons .delete:hover {
   background-color: #d12f2f;
+}
+
+/* Complete-Button */
+.card-buttons .complete {
+  background-color: #4caf50;
+  color: #ffffff;
+  border: 2px solid #388e3c;
+}
+
+.card-buttons .complete:hover {
+  background-color: #45a049;
+}
+
+
+.card-buttons .complete.completed {
+  background-color: #388e3c; 
+  cursor: pointer;
+}
+
+.card-buttons .complete.completed:hover {
+  background-color: #2e7d32;
+}
+
+.opacity-30 {
+  opacity: 0.3;
 }

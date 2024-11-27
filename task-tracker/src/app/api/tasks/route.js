@@ -56,11 +56,36 @@ export async function POST(req) {
 export async function PUT(req) {
     try {
         await connectToDatabase();
-        const { id, ...updatedData } = await req.json();
 
-        const updatedTask = await Task.findByIdAndUpdate(id, updatedData, {
-            new: true,
-        });
+        // Request-Daten entpacken
+        const { id, completed, ...updatedData } = await req.json();
+
+        // Spezielle Behandlung, wenn der 'completed'-Status aktualisiert wird
+        if (completed !== undefined) {
+            const updatedTask = await Task.findByIdAndUpdate(
+                id,
+                { completed },
+                { new: true } // Gibt das aktualisierte Dokument zurück
+            );
+
+            if (!updatedTask) {
+                return new Response(JSON.stringify({ error: 'Task not found' }), {
+                    status: 404,
+                });
+            }
+
+            return new Response(JSON.stringify(updatedTask), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            });
+        }
+
+        // Generische Updates für andere Felder
+        const updatedTask = await Task.findByIdAndUpdate(
+            id,
+            updatedData,
+            { new: true }
+        );
 
         if (!updatedTask) {
             return new Response(JSON.stringify({ error: 'Task not found' }), {
@@ -101,5 +126,44 @@ export async function DELETE(req) {
         return new Response(JSON.stringify({ error: 'Failed to delete task' }), {
             status: 500,
         });
+    }
+}
+
+export async function PATCH(req) {
+    try {
+        await connectToDatabase();
+        const { id, completed } = await req.json();
+
+        // Überprüfen, ob die ID und das Feld "completed" übergeben wurden
+        if (!id || completed === undefined) {
+            return new Response(
+                JSON.stringify({ error: 'Invalid data: ID and completed status are required' }),
+                { status: 400 }
+            );
+        }
+
+        // Aktualisiere den Status der Aufgabe
+        const updatedTask = await Task.findByIdAndUpdate(
+            id,
+            { completed },
+            { new: true } // Gibt die aktualisierte Aufgabe zurück
+        );
+
+        if (!updatedTask) {
+            return new Response(JSON.stringify({ error: 'Task not found' }), {
+                status: 404,
+            });
+        }
+
+        return new Response(JSON.stringify(updatedTask), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' },
+        });
+    } catch (error) {
+        console.error('Error updating task status:', error);
+        return new Response(
+            JSON.stringify({ error: 'Failed to update task status' }),
+            { status: 500 }
+        );
     }
 }

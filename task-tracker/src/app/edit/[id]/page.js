@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import axios from 'axios';
+import '@/app/edit/[id]/page.css';
 
 export default function EditTask({ params }) {
     const [formData, setFormData] = useState({
@@ -10,16 +11,16 @@ export default function EditTask({ params }) {
         description: '',
         priority: 'Medium',
         dueDate: '',
-        completed: false, // Neuer Status "completed"
+        completed: false,
     });
 
-    const [id, setId] = useState(null); // ID lokal speichern
+    const [id, setId] = useState(null);
     const router = useRouter();
 
     useEffect(() => {
         async function fetchParams() {
             const resolvedParams = await params;
-            setId(resolvedParams?.id); // ID korrekt entpacken
+            setId(resolvedParams?.id);
         }
 
         fetchParams();
@@ -28,35 +29,24 @@ export default function EditTask({ params }) {
     useEffect(() => {
         if (id) {
             axios
-                .get(`/api/tasks?id=${id}`) // ID korrekt interpolieren
+                .get(`/api/tasks?id=${id}`) // String korrekt interpoliert
                 .then((response) => setFormData(response.data))
                 .catch((error) => console.error('Error fetching task:', error));
         }
     }, [id]);
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
-        axios
-            .put('/api/tasks', { id, ...formData })
-            .then(() => router.push('/')) // Nach Update zur Startseite weiterleiten
-            .catch((error) => console.error('Error updating task:', error));
-    };
-
-    const handleComplete = async (taskId) => {
         try {
-            await axios.patch('/api/tasks', { id: taskId, completed: true });
-            setTasks((prevTasks) =>
-                prevTasks.map((task) =>
-                    task._id === taskId ? { ...task, completed: true } : task
-                )
-            );
+            await axios.put('/api/tasks', { id, ...formData });
+            router.push('/');
         } catch (error) {
-            console.error('Error marking as completed:', error);
+            console.error('Error updating task:', error);
         }
     };
 
     return (
-        <div>
+        <div className="container">
             <h1 className="text-2x1 font-bold mb-4">Edit Task</h1>
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -82,39 +72,40 @@ export default function EditTask({ params }) {
                         required
                     ></textarea>
                 </div>
-                <div>
-                    <label className="block font-medium">Priority:</label>
-                    <select
-                        value={formData.priority}
-                        onChange={(e) =>
-                            setFormData({ ...formData, priority: e.target.value })
-                        }
-                        className="w-full p-2 border rounded"
-                        required
-                    >
-                        <option value="High">High</option>
-                        <option value="Medium">Medium</option>
-                        <option value="Low">Low</option>
-                    </select>
+                <div className="priority-date-container">
+                    <div>
+                        <label className="block font-medium">Priority:</label>
+                        <select
+                            value={formData.priority}
+                            onChange={(e) =>
+                                setFormData({ ...formData, priority: e.target.value })
+                            }
+                            className="w-full p-2 border rounded"
+                            required
+                        >
+                            <option value="High">High</option>
+                            <option value="Medium">Medium</option>
+                            <option value="Low">Low</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label className="block font-medium">Due Date:</label>
+                        <input
+                            type="date"
+                            value={formData.dueDate?.slice(0, 10)}
+                            onChange={(e) =>
+                                setFormData({ ...formData, dueDate: e.target.value })
+                            }
+                            className="w-full p-2 border rounded"
+                            required
+                        />
+                    </div>
                 </div>
-                <div>
-                    <label className="block font-medium">Due Date:</label>
-                    <input
-                        type="date"
-                        value={formData.dueDate?.slice(0, 10)} // Date korrekt formatieren
-                        onChange={(e) =>
-                            setFormData({ ...formData, dueDate: e.target.value })
-                        }
-                        className="w-full p-2 border rounded"
-                        required
-                    />
-                </div>
-                {/* Neuer Abschnitt für "Completed"-Status */}
                 <div>
                     <label className="block font-medium">Completed:</label>
                     <input
                         type="checkbox"
-                        checked={formData.completed} // Checkbox für den Status
+                        checked={formData.completed}
                         onChange={(e) =>
                             setFormData({ ...formData, completed: e.target.checked })
                         }

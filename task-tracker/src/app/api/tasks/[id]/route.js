@@ -11,6 +11,7 @@ export default function EditTask({ params }) {
         description: '',
         priority: 'Medium',
         dueDate: '',
+        tags: [],
     });
 
     const router = useRouter();

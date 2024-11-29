@@ -9,39 +9,51 @@ export async function GET(req) {
         await connectToDatabase();
         const id = new URL(req.url).searchParams.get('id');
         const tasks = id ? await Task.findById(id) : await Task.find();
-        if (id && !tasks) return jsonResponse({ error: 'Task not found' }, 404);
+        if (id && !tasks) return jsonResponse({}, 404);
         return jsonResponse(tasks);
-    } catch (error) {
-        console.error('Error fetching tasks:', error);
-        return jsonResponse({ error: 'Failed to fetch tasks' }, 500);
+    } catch {
+        return jsonResponse({}, 500);
     }
 }
 
 export async function POST(req) {
     try {
         await connectToDatabase();
-        const newTask = await Task.create(await req.json());
+        const newTaskData = await req.json();
+
+        const newTask = await Task.create({
+            ...newTaskData,
+            description: newTaskData.description || "No description",
+            tags: newTaskData.tags || [], // Standard: Leeres Array, falls keine Tags übermittelt wurden
+        });
+
         return jsonResponse(newTask, 201);
     } catch (error) {
-        console.error('Error creating task:', error);
-        return jsonResponse({ error: 'Failed to create task' }, 500);
+        console.error("Error creating task:", error);
+        return jsonResponse({ error: "Failed to create task" }, 500);
     }
 }
 
 export async function PUT(req) {
     try {
         await connectToDatabase();
-        const { id, completed, ...updatedData } = await req.json();
+        const { id, tags, ...updatedData } = await req.json(); // Tags explizit auslesen
+
+        if (!id) return jsonResponse({ error: 'Task ID is required.' }, 400);
+
+        // Überprüfen, ob tags enthalten sind, und sie separat aktualisieren
         const updatedTask = await Task.findByIdAndUpdate(
             id,
-            completed !== undefined ? { completed } : updatedData,
+            { ...updatedData, ...(tags && { tags }) }, // Tags nur hinzufügen, wenn sie vorhanden sind
             { new: true }
         );
-        if (!updatedTask) return jsonResponse({ error: 'Task not found' }, 404);
-        return jsonResponse(updatedTask);
+
+        return updatedTask
+            ? jsonResponse(updatedTask)
+            : jsonResponse({ error: 'Task not found.' }, 404);
     } catch (error) {
         console.error('Error updating task:', error);
-        return jsonResponse({ error: 'Failed to update task' }, 500);
+        return jsonResponse({ error: 'Failed to update task.' }, 500);
     }
 }
 
@@ -50,11 +62,10 @@ export async function DELETE(req) {
         await connectToDatabase();
         const { id } = await req.json();
         const deletedTask = await Task.findByIdAndDelete(id);
-        if (!deletedTask) return jsonResponse({ error: 'Task not found' }, 404);
+        if (!deletedTask) return jsonResponse({}, 404);
         return jsonResponse({ message: 'Task deleted successfully' });
-    } catch (error) {
-        console.error('Error deleting task:', error);
-        return jsonResponse({ error: 'Failed to delete task' }, 500);
+    } catch {
+        return jsonResponse({}, 500);
     }
 }
 
@@ -62,12 +73,11 @@ export async function PATCH(req) {
     try {
         await connectToDatabase();
         const { id, completed } = await req.json();
-        if (!id || completed === undefined) return jsonResponse({ error: 'Invalid data: ID and completed status are required' }, 400);
+        if (!id || completed === undefined) return jsonResponse({}, 400);
         const updatedTask = await Task.findByIdAndUpdate(id, { completed }, { new: true });
-        if (!updatedTask) return jsonResponse({ error: 'Task not found' }, 404);
+        if (!updatedTask) return jsonResponse({}, 404);
         return jsonResponse(updatedTask);
-    } catch (error) {
-        console.error('Error updating task status:', error);
-        return jsonResponse({ error: 'Failed to update task status' }, 500);
+    } catch {
+        return jsonResponse({}, 500);
     }
 }

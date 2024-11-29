@@ -2,44 +2,63 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { use } from 'react';
 import axios from 'axios';
-import '@/app/edit/[id]/page.css';
 
 export default function EditTask({ params }) {
+    const resolvedParams = use(params);
+    const id = resolvedParams?.id;
+    const router = useRouter();
+
+    // Initialisiere tags korrekt als leeres Array
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         priority: 'Medium',
         dueDate: '',
-        completed: false,
+        tags: [], // Tags korrekt initialisiert
     });
 
-    const [id, setId] = useState(null);
-    const router = useRouter();
-
-    useEffect(() => {
-        async function fetchParams() {
-            const resolvedParams = await params;
-            setId(resolvedParams?.id);
-        }
-
-        fetchParams();
-    }, [params]);
+    const [tagInput, setTagInput] = useState('');
+    const [error, setError] = useState('');
 
     useEffect(() => {
         if (id) {
             axios
-                .get(`/api/tasks?id=${id}`) // String korrekt interpoliert
-                .then((response) => setFormData(response.data))
-                .catch((error) => console.error('Error fetching task:', error));
+                .get(`/api/tasks?id=${id}`)
+                .then((response) => {
+                    const taskData = response.data;
+                    // Stelle sicher, dass tags immer ein Array ist
+                    taskData.tags = taskData.tags || [];
+                    setFormData(taskData);
+                })
+                .catch((error) => {
+                    console.error('Error fetching task:', error);
+                    setError('Failed to fetch task data.');
+                });
         }
     }, [id]);
 
+    const handleAddTag = () => {
+        if (
+            tagInput.trim() && 
+            Array.isArray(formData.tags) && 
+            !formData.tags.includes(tagInput.trim())
+        ) {
+            setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+            setTagInput('');
+        }
+    };
+
+    const handleRemoveTag = (tag) => {
+        setFormData({ ...formData, tags: formData.tags.filter((t) => t !== tag) });
+    };
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             await axios.put('/api/tasks', { id, ...formData });
-            router.push('/');
+            router.push('/'); // Zurück zur Hauptseite
         } catch (error) {
             console.error('Error updating task:', error);
         }
@@ -47,77 +66,72 @@ export default function EditTask({ params }) {
 
     return (
         <div className="container">
-            <h1 className="text-2x1 font-bold mb-4">Edit Task</h1>
-            <form onSubmit={handleSubmit} className="space-y-4">
+            <h1>Edit Task</h1>
+            {error && <p className="text-red-500">{error}</p>}
+            <form onSubmit={handleSubmit}>
                 <div>
-                    <label className="block font-medium">Title:</label>
+                    <label>Title:</label>
                     <input
                         type="text"
                         value={formData.title}
-                        onChange={(e) =>
-                            setFormData({ ...formData, title: e.target.value })
-                        }
-                        className="w-full p-2 border rounded"
+                        onChange={(e) => setFormData({ ...formData, title: e.target.value })}
                         required
                     />
                 </div>
                 <div>
-                    <label className="block font-medium">Description:</label>
+                    <label>Description:</label>
                     <textarea
                         value={formData.description}
-                        onChange={(e) =>
-                            setFormData({ ...formData, description: e.target.value })
-                        }
-                        className="w-full p-2 border rounded"
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                         required
                     ></textarea>
                 </div>
-                <div className="priority-date-container">
-                    <div>
-                        <label className="block font-medium">Priority:</label>
-                        <select
-                            value={formData.priority}
-                            onChange={(e) =>
-                                setFormData({ ...formData, priority: e.target.value })
-                            }
-                            className="w-full p-2 border rounded"
-                            required
-                        >
-                            <option value="High">High</option>
-                            <option value="Medium">Medium</option>
-                            <option value="Low">Low</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label className="block font-medium">Due Date:</label>
-                        <input
-                            type="date"
-                            value={formData.dueDate?.slice(0, 10)}
-                            onChange={(e) =>
-                                setFormData({ ...formData, dueDate: e.target.value })
-                            }
-                            className="w-full p-2 border rounded"
-                            required
-                        />
-                    </div>
+                <div>
+                    <label>Priority:</label>
+                    <select
+                        value={formData.priority}
+                        onChange={(e) => setFormData({ ...formData, priority: e.target.value })}
+                    >
+                        <option value="High">High</option>
+                        <option value="Medium">Medium</option>
+                        <option value="Low">Low</option>
+                    </select>
                 </div>
                 <div>
-                    <label className="block font-medium">Completed:</label>
+                    <label>Due Date:</label>
                     <input
-                        type="checkbox"
-                        checked={formData.completed}
-                        onChange={(e) =>
-                            setFormData({ ...formData, completed: e.target.checked })
-                        }
-                        className="w-6 h-6"
+                        type="date"
+                        value={formData.dueDate}
+                        onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                        required
                     />
                 </div>
-                <button
-                    type="submit"
-                    className="bg-blue-500 text-white px-4 py-2 rounded"
-                >
-                    Update Task
-                </button>
+                <div>
+                    <label>Tags:</label>
+                    <div>
+                        <input
+                            type="text"
+                            value={tagInput}
+                            onChange={(e) => setTagInput(e.target.value)}
+                            placeholder="Add a tag"
+                        />
+                        <button type="button" onClick={handleAddTag}>
+                            Add Tag
+                        </button>
+                    </div>
+                    <div>
+                        {formData.tags.length > 0 &&
+                            formData.tags.map((tag, index) => (
+                                <span key={index} className="tag">
+                                    #{tag}{' '}
+                                    <button type="button" onClick={() => handleRemoveTag(tag)}>
+                                        &times;
+                                    </button>
+                                </span>
+                            ))}
+                    </div>
+                </div>
+                <button type="submit">Update Task</button>
             </form>
         </div>
     );

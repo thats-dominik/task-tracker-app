@@ -16,19 +16,16 @@ export default function EditTask({ params }) {
 
     const router = useRouter();
 
-    // Unwrap params using useEffect
     useEffect(() => {
         async function fetchParamsAndTask() {
             try {
-                const resolvedParams = await params; // Await params as a promise
-                const taskId = resolvedParams?.id; // Access ID safely
+                const resolvedParams = await params;
+                const taskId = resolvedParams?.id;
                 setId(taskId);
 
                 if (taskId) {
                     const response = await axios.get(`/api/tasks?id=${taskId}`);
                     setFormData(response.data);
-                } else {
-                    console.error('Task ID is missing.');
                 }
             } catch (error) {
                 console.error('Error fetching task data:', error);
@@ -38,12 +35,11 @@ export default function EditTask({ params }) {
         fetchParamsAndTask();
     }, [params]);
 
-    // Handle form submission
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
             await axios.put('/api/tasks', { id, ...formData });
-            router.push('/'); // Redirect to home page
+            router.push('/');
         } catch (error) {
             console.error('Error updating task:', error);
         }
@@ -95,7 +91,7 @@ export default function EditTask({ params }) {
                     <label className="block font-medium">Due Date:</label>
                     <input
                         type="date"
-                        value={formData.dueDate?.slice(0, 10)} // Format date correctly
+                        value={formData.dueDate?.slice(0, 10)}
                         onChange={(e) =>
                             setFormData({ ...formData, dueDate: e.target.value })
                         }

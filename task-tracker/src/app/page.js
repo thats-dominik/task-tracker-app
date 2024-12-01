@@ -3,14 +3,19 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 import Link from 'next/link';
+import SearchIcon from '@/icons/search.svg';
+import FilterIcon from '@/icons/filter.svg';
 
 export default function Home() {
     const [tasks, setTasks] = useState([]);
     const [filter, setFilter] = useState('default');
     const [searchQuery, setSearchQuery] = useState('');
+    const [searchVisible, setSearchVisible] = useState(false);
+    const [filterVisible, setFilterVisible] = useState(false);
 
     useEffect(() => {
-        axios.get('/api/tasks')
+        axios
+            .get('/api/tasks')
             .then((response) => setTasks(response.data))
             .catch((error) => console.error('Error fetching tasks:', error));
     }, []);
@@ -23,157 +28,159 @@ export default function Home() {
                 return [...tasks].sort((a, b) => new Date(b.dueDate) - new Date(a.dueDate));
             case 'alphabetical':
                 return [...tasks].sort((a, b) => a.title.localeCompare(b.title));
+            case 'priority':
+                const priorityMap = { High: 1, Medium: 2, Low: 3 };
+                return [...tasks].sort((a, b) => priorityMap[a.priority] - priorityMap[b.priority]);
             default:
-                return tasks; // Keine Sortierung
+                return tasks;
         }
     };
 
     const handleFilterChange = (e) => {
-        setFilter(e.target.value);
+        const selectedFilter = e.target.value;
+        setFilter(selectedFilter);
+        const sortedTasks = sortTasks(tasks, selectedFilter);
+        setTasks(sortedTasks);
     };
 
     const handleSearchChange = (e) => {
         setSearchQuery(e.target.value);
     };
 
-    const handleAction = async (action, taskId, data) => {
+    const toggleSearch = () => {
+        setSearchVisible(!searchVisible);
+    };
+
+    const toggleFilter = () => {
+        setFilterVisible(!filterVisible);
+    };
+
+    const handleToggleComplete = async (taskId, isCompleted) => {
         try {
-            if (action === 'delete') {
-                await axios.delete('/api/tasks', { data: { id: taskId } });
-                setTasks((prev) => prev.filter((task) => task._id !== taskId));
-            } else if (action === 'toggle') {
-                const updatedStatus = !data.completed;
-                await axios.patch('/api/tasks', { id: taskId, completed: updatedStatus });
-                setTasks((prev) =>
-                    prev.map((task) =>
-                        task._id === taskId ? { ...task, completed: updatedStatus } : task
+            const response = await axios.patch('/api/tasks', {
+                id: taskId,
+                completed: isCompleted,
+            });
+
+            if (response.status === 200) {
+                setTasks((prevTasks) =>
+                    prevTasks.map((task) =>
+                        task._id === taskId ? { ...task, completed: isCompleted } : task
                     )
                 );
+            } else {
+                console.error('Failed to update task:', response.statusText);
             }
         } catch (error) {
-            console.error(`Error performing ${action}:`, error);
+            console.error('Error updating task:', error);
         }
     };
 
-    const filteredTasks = tasks.filter(task => {
-        return (
-            task.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            (typeof task.description === 'string' &&
-                task.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
-            (Array.isArray(task.tags) &&
-                task.tags.some(tag => tag.toLowerCase().includes(searchQuery.toLowerCase())))
-        );
-    });
+    const handleDelete = async (taskId) => {
+        try {
+            await axios.delete('/api/tasks', { data: { id: taskId } });
+            setTasks((prevTasks) => prevTasks.filter((task) => task._id !== taskId));
+        } catch (error) {
+            console.error('Error deleting task:', error);
+        }
+    };
+
+    const filteredTasks = tasks.filter(
+        (task) =>
+            task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            (task.description && task.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+            (Array.isArray(task.tags) && task.tags.some((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase())))
+    );
 
     const sortedAndFilteredTasks = sortTasks(filteredTasks, filter);
+    const completedTasks = sortedAndFilteredTasks.filter((task) => task.completed);
+    const activeTasks = sortedAndFilteredTasks.filter((task) => !task.completed);
 
     const renderTask = (task, isCompleted) => (
-    <li
-        key={task._id}
-        className={`bg-teal-400 text-gray-900 p-4 rounded shadow-lg ${isCompleted ? 'opacity-30' : ''}`}
-    >
-        <h3 className="text-xl font-bold mb-2">{task.title}</h3>
-        <p className="text-sm mb-1">{task.description}</p>
-        <p className="text-sm mb-1">Priority: {task.priority}</p>
-        <p className="text-sm mb-3">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
-        <p className="text-sm mb-3">
-            Tags: {Array.isArray(task.tags) && task.tags.length > 0 ? (
-                task.tags.map((tag, index) => (
-                    <span
-                        key={index}
-                        onClick={() => setSearchQuery(tag)}
-                        className="text-blue-500 cursor-pointer hover:underline"
-                    >
-                        #{tag}
-                    </span>
-                ))
-            ) : (
-                'No tags'
-            )}
-        </p>
-        <div className="card-buttons">
-            {!isCompleted && (
-                <>
-                    <Link href={`/edit/${task._id}`} className="px-3 py-1 rounded hover:bg-teal-500 hover:text-gray-900">
-                        Edit
-                    </Link>
-                    <button
-                        onClick={() => handleAction('delete', task._id)}
-                        className="delete px-3 py-1 rounded bg-red-500 text-white"
-                    >
-                        Delete
-                    </button>
-                </>
-            )}
-            <button
-                onClick={() => handleAction('toggle', task._id, task)}
-                className={`complete px-3 py-1 rounded ${isCompleted ? 'bg-green-700' : 'bg-green-500'} text-white`}
-            >
-                {isCompleted ? 'Undo' : 'Complete'}
-            </button>
-        </div>
-    </li>
-);
+        <li
+            key={task._id}
+            className={`card ${isCompleted ? 'opacity-50' : ''}`}
+        >
+            <h3 className="text-lg font-bold mb-1">{task.title}</h3>
+            <p className="mb-2 text-sm">{task.description}</p>
+            <p className="text-xs text-gray-500">Due: {new Date(task.dueDate).toLocaleDateString()}</p>
+            <p className="text-xs text-gray-500">
+                Tags: {task.tags && task.tags.length > 0 ? task.tags.join(', ') : 'No tags'}
+            </p>
+            <p className="priority">Priority: {task.priority || 'Normal'}</p>
+            <div className="card-buttons">
+                <Link href={`/edit/${task._id}`} className="btn-primary">Edit</Link>
+                <button
+                    className="delete-btn"
+                    onClick={() => handleDelete(task._id)}
+                >
+                    Delete
+                </button>
+                <button
+                    className="complete-btn"
+                    onClick={() => handleToggleComplete(task._id, !task.completed)}
+                >
+                    {task.completed ? 'Undo' : 'Complete'}
+                </button>
+            </div>
+        </li>
+    );
 
     return (
-        <div>
-            <h1>Task Tracker</h1>
-            <div className="mb-4">
-                <label htmlFor="search" className="mr-2 font-bold">Search:</label>
-                <input
-                    id="search"
-                    type="text"
-                    value={searchQuery}
-                    onChange={handleSearchChange}
-                    placeholder="Search by title or description"
-                    className="bg-gray-200 text-black px-2 py-1 rounded"
-                />
+        <div className="container">
+            <h1 className="text-center text-4xl font-bold text-secondary mb-6">Task Tracker</h1>
+
+            <div className="flex justify-between items-center mb-4">
+                <Link href="/add" className="btn-add">Add New Task</Link>
+                <div className="flex space-x-4">
+                <div className={`relative search-container ${filterVisible ? 'shifted' : ''}`}>
+                    <button onClick={toggleSearch} className="btn-secondary">
+                        <SearchIcon width={24} height={24} alt="Search" />
+                    </button>
+                    <input
+                        type="text"
+                        value={searchQuery}
+                        onChange={handleSearchChange}
+                        placeholder="Search by title or tags"
+                        className={`search-input ${searchVisible ? 'show' : ''}`}
+                    />
+                </div>
+                <div className="relative filter-container">
+                    <button onClick={toggleFilter} className="btn-secondary">
+                        <FilterIcon width={24} height={24} alt="Filter" />
+                    </button>
+                    <select
+                        value={filter}
+                        onChange={handleFilterChange}
+                        className={`filter-input ${filterVisible ? 'show' : ''}`}
+                    >
+                        <option value="default">Default</option>
+                        <option value="dueDateAsc">Due Date (Ascending)</option>
+                        <option value="dueDateDesc">Due Date (Descending)</option>
+                        <option value="alphabetical">Alphabetical</option>
+                        <option value="priority">By Priority</option>
+                    </select>
+                </div>
+            </div>
             </div>
 
-            <div className="mb-4">
-                <label htmlFor="filter" className="mr-2 font-bold">Sort By:</label>
-                <select
-                    id="filter"
-                    value={filter}
-                    onChange={handleFilterChange}
-                    className="bg-gray-200 text-black px-2 py-1 rounded"
-                >
-                    <option value="default">Default</option>
-                    <option value="dueDateAsc">Due Date (Ascending)</option>
-                    <option value="dueDateDesc">Due Date (Descending)</option>
-                    <option value="alphabetical">Alphabetical (A–Z)</option>
-                </select>
-            </div>
+            <h2 className="text-2xl font-semibold text-secondary mt-6">Active Tasks</h2>
+            <ul className="card-container">
+                {activeTasks.length > 0 ? (
+                    activeTasks.map((task) => renderTask(task, false))
+                ) : (
+                    <p>No active tasks found</p>
+                )}
+            </ul>
 
-            <div className="my-4">
-                <Link
-                    href="/add"
-                    className="bg-teal-500 text-white px-4 py-2 rounded shadow hover:bg-teal-300"
-                >
-                    Add New Task
-                </Link>
-            </div>
-
-            <div>
-                <h2>Task List</h2>
-                <ul>
-                    {sortedAndFilteredTasks.some((task) => !task.completed) ? (
-                        sortedAndFilteredTasks.filter((task) => !task.completed).map((task) => renderTask(task, false))
-                    ) : (
-                        <p>No tasks match your search.</p>
-                    )}
-                </ul>
-            </div>
-            <div>
-                <h2>Completed Tasks</h2>
-                <ul>
-                    {sortedAndFilteredTasks.some((task) => task.completed) ? (
-                        sortedAndFilteredTasks.filter((task) => task.completed).map((task) => renderTask(task, true))
-                    ) : (
-                        <p>No completed tasks match your search.</p>
-                    )}
-                </ul>
-            </div>
+            <h2 className="text-2xl font-semibold text-secondary mt-6">Completed Tasks</h2>
+            <ul className="card-container">
+                {completedTasks.length > 0 ? (
+                    completedTasks.map((task) => renderTask(task, true))
+                ) : (
+                    <p>No completed tasks found</p>
+                )}
+            </ul>
         </div>
     );
 }

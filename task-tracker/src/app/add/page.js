@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import '@/app/add/page.css'
 
 export default function AddTask() {
     const [formData, setFormData] = useState({

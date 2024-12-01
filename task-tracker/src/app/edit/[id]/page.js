@@ -2,67 +2,84 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { use } from 'react';
 import axios from 'axios';
+import '@/app/edit/[id]/page.css';
 
 export default function EditTask({ params }) {
-    const resolvedParams = use(params);
-    const id = resolvedParams?.id;
     const router = useRouter();
 
-    // Initialisiere tags korrekt als leeres Array
     const [formData, setFormData] = useState({
         title: '',
         description: '',
         priority: 'Medium',
         dueDate: '',
-        tags: [], // Tags korrekt initialisiert
+        tags: [],
     });
 
     const [tagInput, setTagInput] = useState('');
     const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true); 
 
     useEffect(() => {
-        if (id) {
-            axios
-                .get(`/api/tasks?id=${id}`)
-                .then((response) => {
+        async function fetchTask() {
+            try {
+                const { id } = await params;
+
+                if (id) {
+                    const response = await axios.get(`/api/tasks?id=${id}`);
                     const taskData = response.data;
-                    // Stelle sicher, dass tags immer ein Array ist
-                    taskData.tags = taskData.tags || [];
-                    setFormData(taskData);
-                })
-                .catch((error) => {
-                    console.error('Error fetching task:', error);
-                    setError('Failed to fetch task data.');
-                });
+
+                    setFormData({
+                        ...taskData,
+                        tags: taskData.tags || [],
+                    });
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error('Error fetching task:', error);
+                setError('Failed to fetch task data.');
+                setLoading(false);
+            }
         }
-    }, [id]);
+
+        fetchTask();
+    }, [params]);
 
     const handleAddTag = () => {
-        if (
-            tagInput.trim() && 
-            Array.isArray(formData.tags) && 
-            !formData.tags.includes(tagInput.trim())
-        ) {
-            setFormData({ ...formData, tags: [...formData.tags, tagInput.trim()] });
+        if (tagInput.trim() && !formData.tags.includes(tagInput.trim())) {
+            setFormData((prevData) => ({
+                ...prevData,
+                tags: [...prevData.tags, tagInput.trim()],
+            }));
             setTagInput('');
         }
     };
 
     const handleRemoveTag = (tag) => {
-        setFormData({ ...formData, tags: formData.tags.filter((t) => t !== tag) });
+        setFormData((prevData) => ({
+            ...prevData,
+            tags: prevData.tags.filter((t) => t !== tag),
+        }));
     };
-    
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            await axios.put('/api/tasks', { id, ...formData });
-            router.push('/'); // Zurück zur Hauptseite
+            await axios.put('/api/tasks', { id: formData._id, ...formData });
+            router.push('/');
         } catch (error) {
             console.error('Error updating task:', error);
+            setError('Failed to update task.');
         }
     };
+
+    if (loading) {
+        return (
+            <div className="container">
+                <h1>Loading...</h1>
+            </div>
+        );
+    }
 
     return (
         <div className="container">
@@ -120,15 +137,14 @@ export default function EditTask({ params }) {
                         </button>
                     </div>
                     <div>
-                        {formData.tags.length > 0 &&
-                            formData.tags.map((tag, index) => (
-                                <span key={index} className="tag">
-                                    #{tag}{' '}
-                                    <button type="button" onClick={() => handleRemoveTag(tag)}>
-                                        &times;
-                                    </button>
-                                </span>
-                            ))}
+                        {formData.tags.map((tag, index) => (
+                            <span key={index} className="tag">
+                                #{tag}
+                                <button type="button" onClick={() => handleRemoveTag(tag)}>
+                                    &times;
+                                </button>
+                            </span>
+                        ))}
                     </div>
                 </div>
                 <button type="submit">Update Task</button>

@@ -11,8 +11,9 @@ export async function GET(req) {
         const tasks = id ? await Task.findById(id) : await Task.find();
         if (id && !tasks) return jsonResponse({}, 404);
         return jsonResponse(tasks);
-    } catch {
-        return jsonResponse({}, 500);
+    } catch (error) {
+        console.error('Error fetching tasks:', error);
+        return jsonResponse({ error: 'Failed to fetch tasks' }, 500);
     }
 }
 
@@ -24,7 +25,8 @@ export async function POST(req) {
         const newTask = await Task.create({
             ...newTaskData,
             description: newTaskData.description || "No description",
-            tags: newTaskData.tags || [], // Standard: Leeres Array, falls keine Tags übermittelt wurden
+            completed: newTaskData.completed || false,
+            tags: newTaskData.tags || [],
         });
 
         return jsonResponse(newTask, 201);
@@ -37,14 +39,13 @@ export async function POST(req) {
 export async function PUT(req) {
     try {
         await connectToDatabase();
-        const { id, tags, ...updatedData } = await req.json(); // Tags explizit auslesen
+        const { id, tags, ...updatedData } = await req.json();
 
         if (!id) return jsonResponse({ error: 'Task ID is required.' }, 400);
 
-        // Überprüfen, ob tags enthalten sind, und sie separat aktualisieren
         const updatedTask = await Task.findByIdAndUpdate(
             id,
-            { ...updatedData, ...(tags && { tags }) }, // Tags nur hinzufügen, wenn sie vorhanden sind
+            { ...updatedData, ...(tags && { tags }) },
             { new: true }
         );
 
@@ -61,11 +62,15 @@ export async function DELETE(req) {
     try {
         await connectToDatabase();
         const { id } = await req.json();
+        if (!id) return jsonResponse({ error: 'Task ID is required.' }, 400);
+
         const deletedTask = await Task.findByIdAndDelete(id);
-        if (!deletedTask) return jsonResponse({}, 404);
+        if (!deletedTask) return jsonResponse({ error: 'Task not found.' }, 404);
+
         return jsonResponse({ message: 'Task deleted successfully' });
-    } catch {
-        return jsonResponse({}, 500);
+    } catch (error) {
+        console.error('Error deleting task:', error);
+        return jsonResponse({ error: 'Failed to delete task' }, 500);
     }
 }
 
@@ -73,11 +78,21 @@ export async function PATCH(req) {
     try {
         await connectToDatabase();
         const { id, completed } = await req.json();
-        if (!id || completed === undefined) return jsonResponse({}, 400);
-        const updatedTask = await Task.findByIdAndUpdate(id, { completed }, { new: true });
-        if (!updatedTask) return jsonResponse({}, 404);
-        return jsonResponse(updatedTask);
-    } catch {
-        return jsonResponse({}, 500);
+        if (!id || completed === undefined) {
+            return jsonResponse({ error: 'Task ID and completed status are required.' }, 400);
+        }
+
+        const updatedTask = await Task.findByIdAndUpdate(
+            id,
+            { completed },
+            { new: true }
+        );
+
+        return updatedTask
+            ? jsonResponse(updatedTask)
+            : jsonResponse({ error: 'Task not found.' }, 404);
+    } catch (error) {
+        console.error('Error updating task completion status:', error);
+        return jsonResponse({ error: 'Failed to update task completion status.' }, 500);
     }
 }
